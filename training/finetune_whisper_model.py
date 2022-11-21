@@ -1,20 +1,18 @@
 import argparse
 import os
+import re
 
+import evaluate
 import pandas as pd
-from torch.utils.data import Dataset
-from unicode_tr import unicode_tr
-import string
+from datasets import Audio, load_from_disk
+from transformers import Seq2SeqTrainer
+from transformers import Seq2SeqTrainingArguments
+from transformers import WhisperFeatureExtractor
+from transformers import WhisperForConditionalGeneration
 from transformers import WhisperProcessor
 from transformers import WhisperTokenizer
-from transformers import WhisperFeatureExtractor
-from datasets import Audio, load_from_disk
-import re
-import evaluate
-from transformers import WhisperForConditionalGeneration
-from transformers import Seq2SeqTrainingArguments
-from transformers import Seq2SeqTrainer
 
+from dataloader.convert_kaldi_data import get_dataset
 
 chars_to_ignore_regex = '[\,\?\.\!\-\;\:\"\“\%\'\‘\”\�\…\{\}\【\】\・\。\『\』\、\ー\〜]'  # remove special character tokens
 
@@ -76,10 +74,6 @@ def prepare_dataset(batch):
     batch["labels"] = tokenizer(batch["sentence"]).input_ids
     return batch
 
-
-def get_dataset(csv_file):
-    train_df = pd.read_csv(csv_file)
-    return Dataset.from_pandas(train_df)
 
 def compute_metrics(pred):
     pred_ids = pred.predictions
