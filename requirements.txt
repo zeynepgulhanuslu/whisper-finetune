@@ -1,0 +1,8 @@
+librosa
+evaluate>=0.30
+git+https://github.com/huggingface/transformers
+gradio
+jiwer
+pandas
+dataset
+unicode_tr
