@@ -122,6 +122,10 @@ if __name__ == '__main__':
     # read audio file
     train_dataset = train_dataset.cast_column("audio", Audio(sampling_rate=16_000))
 
+    feature_extractor = WhisperFeatureExtractor.from_pretrained("openai/whisper-small")
+    tokenizer = WhisperTokenizer.from_pretrained("openai/whisper-small", language="Turkish", task="transcribe")
+    processor = WhisperProcessor.from_pretrained("openai/whisper-small", language="Turkish", task="transcribe")
+
     test_data_dir = os.path.join(out_dir, 'test-data')
     train_data_dir = os.path.join(out_dir, 'train-data')
 
@@ -146,9 +150,6 @@ if __name__ == '__main__':
 
     print('batch dataset completed.')
 
-    feature_extractor = WhisperFeatureExtractor.from_pretrained("openai/whisper-small")
-    tokenizer = WhisperTokenizer.from_pretrained("openai/whisper-small", language="Turkish", task="transcribe")
-    processor = WhisperProcessor.from_pretrained("openai/whisper-small", language="Turkish", task="transcribe")
 
     data_collator = DataCollatorSpeechSeq2SeqWithPadding(processor=processor)
     metric = evaluate.load("wer")
