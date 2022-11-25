@@ -101,7 +101,7 @@ if __name__ == '__main__':
     parser.add_argument('--test', type=str, required=True, help='test csv data file')
     parser.add_argument('--num_proc', type=int, required=True, help='num process counts')
     parser.add_argument('--out_dir', type=str, required=True, help='output directory')
-    parser.add_argument('--save_feats', type=bool, required=True, help='save feature')
+    parser.add_argument('--save_feats', type=bool, default= False, help='save feature')
 
     args = parser.parse_args()
     train_file = args.train
