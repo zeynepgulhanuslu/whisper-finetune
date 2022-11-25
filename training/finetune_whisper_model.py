@@ -16,11 +16,11 @@ from dataloader.convert_kaldi_data import get_dataset
 
 chars_to_ignore_regex = '[\,\?\.\!\-\;\:\"\“\%\'\‘\”\�\…\{\}\【\】\・\。\『\』\、\ー\〜]'  # remove special character tokens
 
-
 import torch
 
 from dataclasses import dataclass
 from typing import Any, Dict, List, Union
+
 
 @dataclass
 class DataCollatorSpeechSeq2SeqWithPadding:
@@ -49,9 +49,11 @@ class DataCollatorSpeechSeq2SeqWithPadding:
 
         return batch
 
+
 def remove_special_characters(batch):
     batch["sentence"] = re.sub(chars_to_ignore_regex, '', batch["sentence"]).lower() + " "
     return batch
+
 
 def replace_hatted_characters(batch):
     batch["sentence"] = re.sub('[â]', 'a', batch["sentence"])
@@ -61,6 +63,7 @@ def replace_hatted_characters(batch):
     batch["sentence"] = re.sub('[é]', 'e', batch["sentence"])
     batch["sentence"] = re.sub('[é]', 'e', batch["sentence"])
     return batch
+
 
 def prepare_dataset(batch):
     # load and resample audio data from 48 to 16kHz
@@ -90,6 +93,7 @@ def compute_metrics(pred):
 
     return {"wer": wer}
 
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
@@ -97,6 +101,7 @@ if __name__ == '__main__':
     parser.add_argument('--test', type=str, required=True, help='test csv data file')
     parser.add_argument('--num_proc', type=int, required=True, help='num process counts')
     parser.add_argument('--out_dir', type=str, required=True, help='output directory')
+    parser.add_argument('--save_feats', type=bool, required=True, help='save feature')
 
     args = parser.parse_args()
     train_file = args.train
@@ -107,7 +112,6 @@ if __name__ == '__main__':
 
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
-
 
     print('creating test dataset')
     test_dataset = get_dataset(test_file)
@@ -125,31 +129,37 @@ if __name__ == '__main__':
     feature_extractor = WhisperFeatureExtractor.from_pretrained("openai/whisper-small")
     tokenizer = WhisperTokenizer.from_pretrained("openai/whisper-small", language="Turkish", task="transcribe")
     processor = WhisperProcessor.from_pretrained("openai/whisper-small", language="Turkish", task="transcribe")
+    if args.save_feats:
 
-    test_data_dir = os.path.join(out_dir, 'test-data')
-    train_data_dir = os.path.join(out_dir, 'train-data')
+        test_data_dir = os.path.join(out_dir, 'test-data')
+        train_data_dir = os.path.join(out_dir, 'train-data')
 
-    if not os.path.exists(test_data_dir):
-        print('preparing test dataset as batches')
+        if not os.path.exists(test_data_dir):
+            print('preparing test dataset as batches')
+            test_dataset = test_dataset.map(prepare_dataset, remove_columns=test_dataset.column_names,
+                                            num_proc=num_process, keep_in_memory=True)
+
+            test_dataset.save_to_disk(test_data_dir)
+        else:
+            print('loading test dataset as batches')
+            test_dataset = load_from_disk(test_data_dir)
+        if not os.path.exists(train_data_dir):
+            print('preparing train dataset as batches')
+            train_dataset = train_dataset.map(prepare_dataset, remove_columns=train_dataset.column_names,
+                                              num_proc=num_process, keep_in_memory=True)
+
+            train_dataset.save_to_disk(train_data_dir)
+        else:
+            print('loading train dataset as batches')
+            train_dataset = load_from_disk(train_data_dir)
+    else:
+
         test_dataset = test_dataset.map(prepare_dataset, remove_columns=test_dataset.column_names,
-                                        num_proc=num_process, keep_in_memory=True)
-
-        test_dataset.save_to_disk(test_data_dir)
-    else:
-        print('loading test dataset as batches')
-        test_dataset = load_from_disk(test_data_dir)
-    if not os.path.exists(train_data_dir):
-        print('preparing train dataset as batches')
+                                        num_proc=num_process)
         train_dataset = train_dataset.map(prepare_dataset, remove_columns=train_dataset.column_names,
-                                          num_proc=num_process, keep_in_memory=True)
-
-        train_dataset.save_to_disk(train_data_dir)
-    else:
-        print('loading train dataset as batches')
-        train_dataset = load_from_disk(train_data_dir)
+                                          num_proc=num_process)
 
     print('batch dataset completed.')
-
 
     data_collator = DataCollatorSpeechSeq2SeqWithPadding(processor=processor)
     metric = evaluate.load("wer")
@@ -157,8 +167,6 @@ if __name__ == '__main__':
     model = WhisperForConditionalGeneration.from_pretrained("openai/whisper-small")
     model.config.forced_decoder_ids = None
     model.config.suppress_tokens = []
-
-
 
     training_args = Seq2SeqTrainingArguments(
         output_dir="./whisper-small-tr",  # change to a repo name of your choice
