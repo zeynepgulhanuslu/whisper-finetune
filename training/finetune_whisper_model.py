@@ -156,8 +156,10 @@ if __name__ == '__main__':
 
         test_dataset = test_dataset.map(prepare_dataset, remove_columns=test_dataset.column_names,
                                         num_proc=num_process)
+        print('creating training dataset')
         train_dataset = train_dataset.map(prepare_dataset, remove_columns=train_dataset.column_names,
                                           num_proc=num_process)
+        print('done creating train dataset')
 
     print('batch dataset completed.')
 
@@ -165,11 +167,12 @@ if __name__ == '__main__':
     metric = evaluate.load("wer")
 
     model = WhisperForConditionalGeneration.from_pretrained("openai/whisper-small")
+    print('whisper small model loaded.')
     model.config.forced_decoder_ids = None
     model.config.suppress_tokens = []
 
     training_args = Seq2SeqTrainingArguments(
-        output_dir="./whisper-small-tr",  # change to a repo name of your choice
+        output_dir=out_dir,  # change to a repo name of your choice
         per_device_train_batch_size=16,
         gradient_accumulation_steps=1,  # increase by 2x for every 2x decrease in batch size
         learning_rate=1e-5,
@@ -200,6 +203,9 @@ if __name__ == '__main__':
         compute_metrics=compute_metrics,
         tokenizer=processor.feature_extractor,
     )
-
-    processor.save_pretrained(args.output_dir)
+    print('saving pretrained model')
+    processor.save_pretrained(out_dir)
+    print('training started')
     trainer.train()
+    print('training finished')
+
