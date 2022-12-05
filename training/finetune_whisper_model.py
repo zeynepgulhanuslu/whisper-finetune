@@ -100,6 +100,7 @@ if __name__ == '__main__':
     parser.add_argument('--train', type=str, required=True, help='train csv data file')
     parser.add_argument('--test', type=str, required=True, help='test csv data file')
     parser.add_argument('--num_proc', type=int, required=True, help='num process counts')
+    parser.add_argument('--batch_size', type=int, required=True, help='batch size')
     parser.add_argument('--out_dir', type=str, required=True, help='output directory')
     parser.add_argument('--save_feats', type=bool, default= False, help='save feature')
 
@@ -123,12 +124,11 @@ if __name__ == '__main__':
     train_dataset = get_dataset(train_file)
     train_dataset = train_dataset.map(replace_hatted_characters)
     train_dataset = train_dataset.map(remove_special_characters)
-    # read audio file
-    train_dataset = train_dataset.cast_column("audio", Audio(sampling_rate=16_000))
 
     feature_extractor = WhisperFeatureExtractor.from_pretrained("openai/whisper-small")
     tokenizer = WhisperTokenizer.from_pretrained("openai/whisper-small", language="Turkish", task="transcribe")
     processor = WhisperProcessor.from_pretrained("openai/whisper-small", language="Turkish", task="transcribe")
+
     if args.save_feats:
 
         test_data_dir = os.path.join(out_dir, 'test-data')
@@ -173,7 +173,7 @@ if __name__ == '__main__':
 
     training_args = Seq2SeqTrainingArguments(
         output_dir=out_dir,  # change to a repo name of your choice
-        per_device_train_batch_size=16,
+        per_device_train_batch_size=args.batch_size,
         gradient_accumulation_steps=1,  # increase by 2x for every 2x decrease in batch size
         learning_rate=1e-5,
         warmup_steps=500,
@@ -181,7 +181,7 @@ if __name__ == '__main__':
         gradient_checkpointing=True,
         fp16=True,
         evaluation_strategy="steps",
-        per_device_eval_batch_size=8,
+        per_device_eval_batch_size=args.batch_size,
         predict_with_generate=True,
         generation_max_length=225,
         save_steps=1000,
