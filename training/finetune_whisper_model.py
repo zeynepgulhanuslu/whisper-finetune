@@ -123,6 +123,7 @@ if __name__ == '__main__':
     train_dataset = get_dataset(train_file)
     train_dataset = train_dataset.map(replace_hatted_characters)
     train_dataset = train_dataset.map(remove_special_characters)
+    train_dataset = train_dataset.cast_column("audio", Audio(sampling_rate=16_000))
 
     feature_extractor = WhisperFeatureExtractor.from_pretrained("openai/whisper-small")
     tokenizer = WhisperTokenizer.from_pretrained("openai/whisper-small", language="Turkish", task="transcribe")
@@ -152,10 +153,10 @@ if __name__ == '__main__':
             print('loading train dataset as batches')
             train_dataset = load_from_disk(train_data_dir)
     else:
-
+        print('prepare test dataset')
         test_dataset = test_dataset.map(prepare_dataset, remove_columns=test_dataset.column_names,
                                         num_proc=num_process)
-        print('creating training dataset')
+        print('prepare training dataset')
         train_dataset = train_dataset.map(prepare_dataset, remove_columns=train_dataset.column_names,
                                           num_proc=num_process)
         print('done creating train dataset')
