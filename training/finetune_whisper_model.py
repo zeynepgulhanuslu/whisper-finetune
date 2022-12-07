@@ -3,7 +3,6 @@ import os
 import re
 
 import evaluate
-import pandas as pd
 from datasets import Audio, load_from_disk
 from transformers import Seq2SeqTrainer
 from transformers import Seq2SeqTrainingArguments
@@ -102,7 +101,7 @@ if __name__ == '__main__':
     parser.add_argument('--num_proc', type=int, required=True, help='num process counts')
     parser.add_argument('--batch_size', type=int, required=True, help='batch size')
     parser.add_argument('--out_dir', type=str, required=True, help='output directory')
-    parser.add_argument('--save_feats', type=bool, default= False, help='save feature')
+    parser.add_argument('--save_feats', type=bool, default=False, help='save feature')
 
     args = parser.parse_args()
     train_file = args.train
@@ -187,6 +186,7 @@ if __name__ == '__main__':
         save_steps=1000,
         eval_steps=1000,
         logging_steps=25,
+        optim="adamw_bnb_8bit",
         report_to=["tensorboard"],
         load_best_model_at_end=True,
         metric_for_best_model="wer",
@@ -208,4 +208,3 @@ if __name__ == '__main__':
     print('training started')
     trainer.train()
     print('training finished')
-

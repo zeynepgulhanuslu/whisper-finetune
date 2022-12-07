@@ -69,11 +69,8 @@ if __name__ == '__main__':
     parser.add_argument('--kaldi_dir', type=str, required=True, help='kaldi directory')
     parser.add_argument('--out_file', type=str, required=True, help='data file')
 
-
     args = parser.parse_args()
     kaldi_dir = args.kaldi_dir
     out_file = args.out_file
-
-
 
     save_kaldi_data_as_csv(kaldi_dir, out_file)
