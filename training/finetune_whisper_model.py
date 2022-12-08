@@ -19,7 +19,9 @@ import torch
 
 from dataclasses import dataclass
 from typing import Any, Dict, List, Union
-
+import os
+os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
+os.environ["CUDA_VISIBLE_DEVICES"]="0,1"
 
 @dataclass
 class DataCollatorSpeechSeq2SeqWithPadding:
@@ -175,7 +177,7 @@ if __name__ == '__main__':
     training_args = Seq2SeqTrainingArguments(
         output_dir=out_dir,  # change to a repo name of your choice
         per_device_train_batch_size=args.batch_size,
-        gradient_accumulation_steps=1,  # increase by 2x for every 2x decrease in batch size
+        gradient_accumulation_steps=2,  # increase by 2x for every 2x decrease in batch size
         learning_rate=1e-5,
         warmup_steps=500,
         max_steps=4000,
