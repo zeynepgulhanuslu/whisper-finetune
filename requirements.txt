@@ -6,4 +6,4 @@ jiwer
 pandas
 dataset
 unicode_tr
-pip install setuptools==59.5.0
+setuptools==59.5.0
