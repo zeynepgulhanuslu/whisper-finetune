@@ -102,6 +102,7 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int, required=True, help='batch size')
     parser.add_argument('--out_dir', type=str, required=True, help='output directory')
     parser.add_argument('--save_feats', type=bool, default=False, help='save feature')
+    parser.add_argument('--gpu', type=bool, default=False, help='use gpu')
 
     args = parser.parse_args()
     train_file = args.train
@@ -109,7 +110,7 @@ if __name__ == '__main__':
 
     num_process = args.num_proc
     out_dir = args.out_dir
-
+    use_gpu = args.gpu
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
 
@@ -179,7 +180,7 @@ if __name__ == '__main__':
         warmup_steps=500,
         max_steps=4000,
         gradient_checkpointing=True,
-        fp16=True,
+        fp16=use_gpu,
         evaluation_strategy="steps",
         per_device_eval_batch_size=args.batch_size / 2,
         predict_with_generate=True,
@@ -187,7 +188,6 @@ if __name__ == '__main__':
         save_steps=1000,
         eval_steps=1000,
         logging_steps=25,
-        #optim="adamw_bnb_8bit",
         report_to=["tensorboard"],
         load_best_model_at_end=True,
         metric_for_best_model="wer",
