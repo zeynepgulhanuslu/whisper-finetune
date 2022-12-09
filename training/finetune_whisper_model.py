@@ -173,6 +173,7 @@ if __name__ == '__main__':
     print('whisper small model loaded.')
     model.config.forced_decoder_ids = None
     model.config.suppress_tokens = []
+    model.config.use_cache = False
 
     training_args = Seq2SeqTrainingArguments(
         output_dir=out_dir,  # change to a repo name of your choice
@@ -184,7 +185,7 @@ if __name__ == '__main__':
         gradient_checkpointing=True,
         fp16=use_gpu,
         evaluation_strategy="steps",
-        per_device_eval_batch_size=args.batch_size / 2,
+        per_device_eval_batch_size=int(args.batch_size / 2),
         predict_with_generate=True,
         generation_max_length=225,
         save_steps=1000,
