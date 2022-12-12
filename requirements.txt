@@ -7,3 +7,4 @@ pandas
 dataset
 unicode_tr
 setuptools==59.5.0
+more-itertools

@@ -20,8 +20,15 @@ import torch
 from dataclasses import dataclass
 from typing import Any, Dict, List, Union
 import os
-os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="0,1"
+
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0,1"
+
+import torch
+
+from dataclasses import dataclass
+from typing import Any, Dict, List, Union
+
 
 @dataclass
 class DataCollatorSpeechSeq2SeqWithPadding:
@@ -67,15 +74,20 @@ def replace_hatted_characters(batch):
 
 
 def prepare_dataset(batch):
-    # load and resample audio data from 48 to 16kHz
+    # load and (possibly) resample audio data to 16kHz
     audio = batch["audio"]
 
     # compute log-Mel input features from input audio array
-    batch["input_features"] = feature_extractor(audio["array"],
-                                                sampling_rate=audio["sampling_rate"]).input_features[0]
+    batch["input_features"] = \
+        processor.feature_extractor(audio["array"], sampling_rate=audio["sampling_rate"]).input_features[0]
+    # compute input length of audio sample in seconds
+    batch["input_length"] = len(audio["array"]) / audio["sampling_rate"]
+
+    # optional pre-processing steps
+    transcription = batch["sentence"]
 
     # encode target text to label ids
-    batch["labels"] = tokenizer(batch["sentence"]).input_ids
+    batch["labels"] = processor.tokenizer(transcription).input_ids
     return batch
 
 
@@ -84,11 +96,11 @@ def compute_metrics(pred):
     label_ids = pred.label_ids
 
     # replace -100 with the pad_token_id
-    label_ids[label_ids == -100] = tokenizer.pad_token_id
+    label_ids[label_ids == -100] = processor.tokenizer.pad_token_id
 
     # we do not want to group tokens when computing the metrics
-    pred_str = tokenizer.batch_decode(pred_ids, skip_special_tokens=True)
-    label_str = tokenizer.batch_decode(label_ids, skip_special_tokens=True)
+    pred_str = processor.tokenizer.batch_decode(pred_ids, skip_special_tokens=True)
+    label_str = processor.tokenizer.batch_decode(label_ids, skip_special_tokens=True)
 
     wer = 100 * metric.compute(predictions=pred_str, references=label_str)
 
@@ -98,15 +110,17 @@ def compute_metrics(pred):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
+    parser.add_argument('--whisper', type=str, required=True, help='Whisper fine tune model type. '
+                                                                   'It could be small, base, large or tiny')
     parser.add_argument('--train', type=str, required=True, help='train csv data file')
     parser.add_argument('--test', type=str, required=True, help='test csv data file')
     parser.add_argument('--num_proc', type=int, required=True, help='num process counts')
     parser.add_argument('--batch_size', type=int, required=True, help='batch size')
     parser.add_argument('--out_dir', type=str, required=True, help='output directory')
-    parser.add_argument('--save_feats', type=bool, default=False, help='save feature')
     parser.add_argument('--gpu', type=bool, default=False, help='use gpu')
 
     args = parser.parse_args()
+    fine_tune_model = 'openai/whisper-' + args.whisper
     train_file = args.train
     test_file = args.test
 
@@ -116,72 +130,45 @@ if __name__ == '__main__':
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
 
-    print('creating test dataset')
-    test_dataset = get_dataset(test_file)
-    test_dataset = test_dataset.map(replace_hatted_characters)
-    test_dataset = test_dataset.map(remove_special_characters)
-    test_dataset = test_dataset.cast_column("audio", Audio(sampling_rate=16_000))
-
-    print('creating train dataset')
+    print('preparing train dataset')
     train_dataset = get_dataset(train_file)
     train_dataset = train_dataset.map(replace_hatted_characters)
     train_dataset = train_dataset.map(remove_special_characters)
     train_dataset = train_dataset.cast_column("audio", Audio(sampling_rate=16_000))
 
-    feature_extractor = WhisperFeatureExtractor.from_pretrained("openai/whisper-base")
-    tokenizer = WhisperTokenizer.from_pretrained("openai/whisper-base", language="Turkish", task="transcribe")
-    processor = WhisperProcessor.from_pretrained("openai/whisper-base", language="Turkish", task="transcribe")
+    feature_extractor = WhisperFeatureExtractor.from_pretrained(fine_tune_model)
+    tokenizer = WhisperTokenizer.from_pretrained(fine_tune_model, language="Turkish", task="transcribe")
+    processor = WhisperProcessor.from_pretrained(fine_tune_model, language="Turkish", task="transcribe")
 
-    if args.save_feats:
+    train_dataset = train_dataset.map(prepare_dataset, remove_columns=train_dataset.column_names,
+                                      num_proc=num_process, keep_in_memory=False)
+    print('done creating train dataset')
+    print('creating test dataset')
 
-        test_data_dir = os.path.join(out_dir, 'test-data')
-        train_data_dir = os.path.join(out_dir, 'train-data')
+    test_dataset = get_dataset(test_file)
+    test_dataset = test_dataset.map(replace_hatted_characters)
+    test_dataset = test_dataset.map(remove_special_characters)
+    test_dataset = test_dataset.cast_column("audio", Audio(sampling_rate=16_000))
 
-        if not os.path.exists(test_data_dir):
-            print('preparing test dataset as batches')
-            test_dataset = test_dataset.map(prepare_dataset, remove_columns=test_dataset.column_names,
-                                            num_proc=num_process, keep_in_memory=True)
-
-            test_dataset.save_to_disk(test_data_dir)
-        else:
-            print('loading test dataset as batches')
-            test_dataset = load_from_disk(test_data_dir)
-        if not os.path.exists(train_data_dir):
-            print('preparing train dataset as batches')
-            train_dataset = train_dataset.map(prepare_dataset, remove_columns=train_dataset.column_names,
-                                              num_proc=num_process, keep_in_memory=True)
-
-            train_dataset.save_to_disk(train_data_dir)
-        else:
-            print('loading train dataset as batches')
-            train_dataset = load_from_disk(train_data_dir)
-    else:
-        print('prepare test dataset')
-        test_dataset = test_dataset.map(prepare_dataset, remove_columns=test_dataset.column_names,
-                                        num_proc=num_process)
-        print('prepare training dataset')
-        train_dataset = train_dataset.map(prepare_dataset, remove_columns=train_dataset.column_names,
-                                          num_proc=num_process)
-        print('done creating train dataset')
-
+    test_dataset = test_dataset.map(prepare_dataset, remove_columns=test_dataset.column_names,
+                                    num_proc=num_process, keep_in_memory=False)
     print('batch dataset completed.')
 
     data_collator = DataCollatorSpeechSeq2SeqWithPadding(processor=processor)
     metric = evaluate.load("wer")
 
-    model = WhisperForConditionalGeneration.from_pretrained("openai/whisper-base")
+    model = WhisperForConditionalGeneration.from_pretrained(fine_tune_model)
     print('whisper small model loaded.')
     model.config.forced_decoder_ids = None
     model.config.suppress_tokens = []
     model.config.use_cache = False
 
     training_args = Seq2SeqTrainingArguments(
-        output_dir=out_dir,  # change to a repo name of your choice
+        output_dir="./",
         per_device_train_batch_size=args.batch_size,
-        gradient_accumulation_steps=2,  # increase by 2x for every 2x decrease in batch size
         learning_rate=1e-5,
         warmup_steps=500,
-        max_steps=4000,
+        max_steps=3000,
         gradient_checkpointing=True,
         fp16=use_gpu,
         evaluation_strategy="steps",
@@ -209,6 +196,7 @@ if __name__ == '__main__':
     )
     print('saving pretrained model')
     processor.save_pretrained(out_dir)
+    tokenizer.save_pretrained(out_dir)
     print('training started')
     trainer.train()
     print('training finished')
