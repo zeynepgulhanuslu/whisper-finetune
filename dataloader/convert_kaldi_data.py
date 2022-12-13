@@ -55,8 +55,8 @@ def save_kaldi_data_as_json(kaldi_dir, out_file):
     audio_list = []
     text_list = []
     for unit in kaldi_units:
-        audio_list.append(unit.audio_path)
-        text_list.append(unit.text)
+        audio_list.append(unit.audio_path.strip())
+        text_list.append(unit.text.strip())
 
     data = {"audio": audio_list, "text": text_list}
     json.dump(data, f_o)

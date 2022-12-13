@@ -53,9 +53,6 @@ def main(args):
         "automatic-speech-recognition", model=args.model_id, device=args.device,
         use_auth_token="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"
     )
-
-
-
     dataset = load_dataset("json", data_files=args.data_json)
     dataset = dataset.cast_column("audio", Audio(sampling_rate=16000))
     dataset = dataset.map(normalise)
@@ -68,6 +65,7 @@ def main(args):
     for out in whisper_asr(data(dataset), batch_size=args.batch_size):
         predictions.append(whisper_norm(out["text"]))
         references.append(out["reference"][0])
+        print(whisper_norm(out["text"]), out["reference"][0])
     wer = wer_metric.compute(references=references, predictions=predictions)
     wer = round(100 * wer, 2)
     print("WER:", wer)
