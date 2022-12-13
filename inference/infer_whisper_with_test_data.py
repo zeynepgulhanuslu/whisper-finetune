@@ -1,4 +1,5 @@
 import argparse
+import csv
 
 from transformers import pipeline
 from transformers.models.whisper.english_normalizer import BasicTextNormalizer
@@ -71,11 +72,18 @@ def main(args):
     for out in whisper_asr(data(dataset), batch_size=args.batch_size):
         predictions.append(whisper_norm(out["text"]))
         references.append(out["reference"][0])
-
     wer = wer_metric.compute(references=references, predictions=predictions)
     wer = round(100 * wer, 2)
-
     print("WER:", wer)
+
+    if args.result is not None:
+        f_o = open(args.result, 'w', encoding='utf-8', newline='')
+        writer = csv.writer(f_o)
+        header = ['ref', 'hyp']
+        writer.writerow(header)
+        for ref, hyp in zip(references, predictions):
+            writer.writerow([ref, hyp])
+        writer.writerow(f"wer: {wer}")
 
 
 if __name__ == '__main__':
@@ -121,6 +129,12 @@ if __name__ == '__main__':
         default=16,
         help="Number of samples to go through each streamed batch.",
     )
+    parser.add_argument(
+        "--result",
+        type=str,
+        help="Result csv file that contains ref and hypothesis.",
+    )
+
     args = parser.parse_args()
 
     main(args)
