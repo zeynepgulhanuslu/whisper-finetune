@@ -9,6 +9,7 @@ from transformers import WhisperFeatureExtractor
 from transformers import WhisperForConditionalGeneration
 from transformers import WhisperProcessor
 from transformers import WhisperTokenizer
+from unicode_tr import unicode_tr
 
 from dataloader.convert_kaldi_data import get_dataset
 
@@ -54,7 +55,7 @@ class DataCollatorSpeechSeq2SeqWithPadding:
 
 
 def remove_special_characters(batch):
-    batch["sentence"] = re.sub(chars_to_ignore_regex, '', batch["sentence"]).lower() + " "
+    batch["sentence"] = unicode_tr(re.sub(chars_to_ignore_regex, '', batch["sentence"])).lower() + " "
     return batch
 
 

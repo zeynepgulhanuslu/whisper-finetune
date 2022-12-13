@@ -4,6 +4,7 @@ from transformers import pipeline
 from transformers.models.whisper.english_normalizer import BasicTextNormalizer
 from datasets import load_dataset, Audio
 import evaluate
+from unicode_tr import unicode_tr
 
 wer_metric = evaluate.load("wer")
 
@@ -17,15 +18,15 @@ def is_target_text_in_range(ref):
 
 def get_text(sample):
     if "text" in sample:
-        return sample["text"]
+        return unicode_tr(sample["text"]).lower()
     elif "sentence" in sample:
-        return sample["sentence"]
+        return unicode_tr(sample["sentence"]).lower()
     elif "normalized_text" in sample:
-        return sample["normalized_text"]
+        return unicode_tr(sample["normalized_text"]).lower()
     elif "transcript" in sample:
-        return sample["transcript"]
+        return unicode_tr(sample["transcript"]).lower()
     elif "transcription" in sample:
-        return sample["transcription"]
+        return unicode_tr(sample["transcription"]).lower()
     else:
         raise ValueError(
             f"Expected transcript column of either 'text', 'sentence', 'normalized_text' or 'transcript'. Got sample of "
@@ -49,7 +50,7 @@ def data(dataset):
 def main(args):
     whisper_asr = pipeline(
         "automatic-speech-recognition", model=args.model_id, device=args.device,
-        use_auth_token= "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"
+        use_auth_token="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"
     )
 
     whisper_asr.model.config.forced_decoder_ids = (
