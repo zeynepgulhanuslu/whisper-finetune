@@ -54,6 +54,7 @@ def main(args):
         use_auth_token="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"
     )
     dataset = load_dataset("json", data_files=args.data_json)
+    print(dataset)
     dataset = dataset.cast_column("audio", Audio(sampling_rate=16000))
     dataset = dataset.map(normalise)
     dataset = dataset.filter(is_target_text_in_range, input_columns=["norm_text"])
