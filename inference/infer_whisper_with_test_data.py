@@ -54,11 +54,7 @@ def main(args):
         use_auth_token="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"
     )
 
-    whisper_asr.model.config.forced_decoder_ids = (
-        whisper_asr.tokenizer.get_decoder_prompt_ids(
-            language=args.language, task="transcribe"
-        )
-    )
+
 
     dataset = load_dataset("json", data_files=args.data_json)
     dataset = dataset.cast_column("audio", Audio(sampling_rate=16000))
@@ -101,13 +97,6 @@ if __name__ == '__main__':
         type=str,
         required=True,
         help="Model identifier. Should be loadable with 🤗 Transformers",
-    )
-
-    parser.add_argument(
-        "--config",
-        type=str,
-        required=True,
-        help="Config of the dataset. *E.g.* `'en'` for the English split of Common Voice",
     )
 
     parser.add_argument(
