@@ -1,9 +1,8 @@
 import argparse
-import os
 import re
 
 import evaluate
-from datasets import Audio, load_from_disk
+from datasets import Audio
 from transformers import Seq2SeqTrainer
 from transformers import Seq2SeqTrainingArguments
 from transformers import WhisperFeatureExtractor
@@ -15,10 +14,6 @@ from dataloader.convert_kaldi_data import get_dataset
 
 chars_to_ignore_regex = '[\,\?\.\!\-\;\:\"\“\%\'\‘\”\�\…\{\}\【\】\・\。\『\』\、\ー\〜]'  # remove special character tokens
 
-import torch
-
-from dataclasses import dataclass
-from typing import Any, Dict, List, Union
 import os
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"

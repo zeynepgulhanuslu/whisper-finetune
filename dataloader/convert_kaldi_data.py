@@ -45,6 +45,23 @@ class KaldiDataUnit:
         return kaldi_units
 
 
+def save_kaldi_data_as_json(kaldi_dir, out_file):
+    kaldi_units = KaldiDataUnit.load_kaldi_data(kaldi_dir)
+    parent_dir = os.path.dirname(out_file)
+    if not os.path.exists(parent_dir):
+        os.mkdir(parent_dir)
+    f_o = open(out_file, 'w', encoding='utf-8')
+
+    audio_list = []
+    text_list = []
+    for unit in kaldi_units:
+        audio_list.append(unit.audio_path)
+        text_list.append(unit.text)
+
+    data = {"audio": audio_list, "text": text_list}
+    json.dump(data, f_o)
+
+
 def save_kaldi_data_as_csv(kaldi_dir, out_file):
     kaldi_units = KaldiDataUnit.load_kaldi_data(kaldi_dir)
     parent_dir = os.path.dirname(out_file)
@@ -68,9 +85,15 @@ if __name__ == '__main__':
 
     parser.add_argument('--kaldi_dir', type=str, required=True, help='kaldi directory')
     parser.add_argument('--out_file', type=str, required=True, help='data file')
+    parser.add_argument('--csv', type=bool, required=False, help='Converted file is csv')
+    parser.add_argument('--json', type=bool, required=False, help='Converted file is json')
 
     args = parser.parse_args()
     kaldi_dir = args.kaldi_dir
     out_file = args.out_file
 
-    save_kaldi_data_as_csv(kaldi_dir, out_file)
+    if args.csv:
+        save_kaldi_data_as_csv(kaldi_dir, out_file)
+
+    if args.json:
+        save_kaldi_data_as_json(kaldi_dir, out_file)
