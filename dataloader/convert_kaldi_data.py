@@ -69,7 +69,7 @@ def save_kaldi_data_as_csv(kaldi_dir, out_file):
         os.mkdir(parent_dir)
     f_o = open(out_file, 'w', encoding='utf-8', newline='')
     writer = csv.writer(f_o)
-    header = ['path', 'audio', 'sentence']
+    header = ['audio', 'sentence']
     writer.writerow(header)
     for unit in kaldi_units:
         writer.writerow([unit.audio_path, unit.audio_path, unit.text])

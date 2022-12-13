@@ -7,6 +7,8 @@ from datasets import load_dataset, Audio
 import evaluate
 from unicode_tr import unicode_tr
 
+from dataloader.convert_kaldi_data import get_dataset
+
 wer_metric = evaluate.load("wer")
 
 
@@ -53,7 +55,7 @@ def main(args):
         "automatic-speech-recognition", model=args.model_id, device=args.device,
         use_auth_token="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"
     )
-    dataset = load_dataset("json", data_files=args.data_json)
+    dataset = get_dataset(args.data)
     print(dataset)
     dataset = dataset.cast_column("audio", Audio(sampling_rate=16000))
     dataset = dataset.map(normalise)
@@ -85,10 +87,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        "--data_json",
+        "--data",
         type=str,
         required=True,
-        help="Data json file for test. Format: audio: /path, text: transcription.",
+        help="Data csv file for test. Format: audio: /path, text: transcription.",
     )
 
     parser.add_argument(
