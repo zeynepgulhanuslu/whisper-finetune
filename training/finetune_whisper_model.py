@@ -193,6 +193,7 @@ if __name__ == '__main__':
     print('saving pretrained model')
     processor.save_pretrained(out_dir)
     tokenizer.save_pretrained(out_dir)
+    torch.cuda.empty_cache()
     print('training started')
     trainer.train()
     print('training finished')
